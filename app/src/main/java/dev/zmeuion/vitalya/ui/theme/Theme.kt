@@ -15,26 +15,31 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+private val LightColors = lightColorScheme(
+    primary = md_theme_light_primary,
+    inversePrimary = md_theme_light_inversePrimary,
+    secondary = md_theme_light_secondary,
+    tertiary = md_theme_light_tertiary,
+    background = md_theme_light_background,
+    onBackground = md_theme_light_onBackground,
+    error = md_theme_light_error,
+    outline = md_theme_light_outline,
+    scrim = md_theme_light_scrim
+
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val DarkColors = darkColorScheme(
+    primary = md_theme_dark_primary,
+    inversePrimary = md_theme_dark_inversePrimary,
+    secondary = md_theme_dark_secondary,
+    tertiary = md_theme_dark_tertiary,
+    background = md_theme_dark_background,
+    onBackground = md_theme_dark_onBackground,
+    error = md_theme_dark_error,
+    outline = md_theme_dark_outline,
+    scrim = md_theme_dark_scrim
+
 )
 
 @Composable
@@ -50,8 +55,8 @@ fun VitalyaTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> DarkColors
+        else -> LightColors
     }
     val view = LocalView.current
     if (!view.isInEditMode) {

@@ -86,6 +86,8 @@ dependencies {
     implementation(libs.ktor.client.serialization)
     implementation(libs.ktor.client.logging)
     implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content)
+
 
     implementation(libs.datastore)
     implementation(libs.room.runtime)

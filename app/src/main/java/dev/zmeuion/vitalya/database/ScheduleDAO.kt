@@ -8,9 +8,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ScheduleDAO {
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert()
     suspend fun insert(schedule: ScheduleDBO)
 
     @Query("SELECT * FROM schedule")
     fun getAll(): Flow<List<ScheduleDBO>>
+
+    @Query("SELECT * FROM schedule WHERE date = :date")
+    fun getAllByDate(date: String): Flow<List<ScheduleDBO>>
 }

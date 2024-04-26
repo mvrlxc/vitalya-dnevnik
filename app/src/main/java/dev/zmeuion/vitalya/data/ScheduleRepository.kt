@@ -22,4 +22,8 @@ class ScheduleRepository(
         return database.getAll()
     }
 
+    fun getFromDbByDate(date: String): Flow<List<ScheduleDBO>> {
+        return database.getAllByDate(date)
+    }
+
 }

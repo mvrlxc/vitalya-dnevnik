@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "schedule")
 data class ScheduleDBO(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Int? = 0,
     val group: String,
     val timeStart: String,
     val timeEnd: String,

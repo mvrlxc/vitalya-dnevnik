@@ -12,7 +12,8 @@ val DatabaseModule = module {
         Room.databaseBuilder(
             androidContext(),
             Database::class.java, "database"
-        )
+        ).allowMainThreadQueries()
+            .fallbackToDestructiveMigration()
             .build()
     }
     single {

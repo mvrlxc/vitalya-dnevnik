@@ -15,9 +15,9 @@ class LoginApi(
     private val client: HttpClient
 ) {
 
-    suspend fun login(login: String, password: String): String {
-        val body = LoginDTO(login = login, password = password)
-        return client.post("/auth/login") {
+    suspend fun login(login: String, password: String, username: String, type: String): String {
+        val body = LoginDTO(login = login, password = password, username = username)
+        return client.post("/auth/$type") {
             contentType(ContentType.Application.Json)
             setBody(body)
         }.body<TextDTO>().text

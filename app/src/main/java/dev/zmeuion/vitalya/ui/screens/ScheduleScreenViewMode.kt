@@ -2,10 +2,16 @@ package dev.zmeuion.vitalya.ui.screens
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.pager.PagerState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.zmeuion.vitalya.data.ScheduleRepository
 import dev.zmeuion.vitalya.database.ScheduleDBO
+import dev.zmeuion.vitalya.ui.utils.formatDateFromMillis
+import dev.zmeuion.vitalya.ui.utils.getCurrentDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -45,28 +51,36 @@ class ScheduleScreenViewModel(
 
     }
 
-
-    fun updateState() {
-
-        viewModelScope.launch {
-            repository.getFromDb().stateIn(
-                scope = viewModelScope,
-                SharingStarted.WhileSubscribed(5000L),
-                initialValue = mutableListOf()
-            ).collect { data ->
-                _uiState.update { it.copy(text = data.toString()) }
-
-            }
-        }
-
-    }
-
     fun getScheduleByDate(date: String): Flow<List<ScheduleDBO>> {
         return repository.getFromDbByDate(date)
+    }
+
+
+    fun pickDate() {
+        _uiState.update { it.copy(isDatePickerOpen = true) }
+    }
+
+    fun dismissDatePicker() {
+        _uiState.update { it.copy(isDatePickerOpen = false) }
+    }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    fun confirmDatePicker(
+        dateMillis: Long?,
+        pagerState: PagerState,
+        dateList: List<String>,
+        scope: CoroutineScope
+    ) {
+        val date = dateMillis?.let { formatDateFromMillis(it) } ?: getCurrentDate()
+        scope.launch {
+            pagerState.scrollToPage(dateList.indexOf(date))
+        }
+        _uiState.update { it.copy(isDatePickerOpen = false) }
     }
 }
 
 data class ScheduleScreenState(
     val datesRange: List<String> = listOf(),
+    val isDatePickerOpen: Boolean = false,
     val text: String = ""
 )

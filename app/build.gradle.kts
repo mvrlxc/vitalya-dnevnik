@@ -78,6 +78,7 @@ dependencies {
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
     implementation(libs.koin.navigation)
+    implementation(libs.koin.core)
 
     implementation(libs.serialization)
 
@@ -94,6 +95,8 @@ dependencies {
     annotationProcessor(libs.room.compiler)
     ksp(libs.room.compiler)
     implementation(libs.room.ktx)
+
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
 
 
 }

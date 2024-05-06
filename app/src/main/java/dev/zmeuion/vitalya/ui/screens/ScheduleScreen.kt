@@ -1,5 +1,6 @@
 package dev.zmeuion.vitalya.ui.screens
 
+import android.annotation.SuppressLint
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -8,12 +9,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,19 +21,14 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -43,31 +36,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.zmeuion.vitalya.R
 import dev.zmeuion.vitalya.database.ScheduleDBO
 import org.koin.androidx.compose.getViewModel
-import java.text.SimpleDateFormat
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.snapshotFlow
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import dev.zmeuion.vitalya.ui.utils.formatDate
 import dev.zmeuion.vitalya.ui.utils.getCurrentDate
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 val loading = ScheduleDBO(
@@ -114,9 +102,9 @@ fun LessonCard(
         }
         Card(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Max)
-                .padding(start = 8.dp, end = 8.dp),
+                .padding(start = 8.dp, end = 8.dp)
+                .fillMaxWidth(),
+            //  .height(IntrinsicSize.Max),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
             )
@@ -128,10 +116,13 @@ fun LessonCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row {
+                Row(
+                    modifier.fillMaxWidth(0.9f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxHeight()
+                            // .fillMaxHeight()
                             .padding(end = 16.dp),
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -158,19 +149,16 @@ fun LessonCard(
 @Composable
 fun ScheduleBody(
     schedule: List<ScheduleDBO>,
+    isGroupPicked: Boolean,
     modifier: Modifier,
 ) {
-    val lottieState = rememberLottieComposition(spec = LottieCompositionSpec.Asset("loading.json"))
     if (schedule == listOf(loading)) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center)
         ) {
-            LottieAnimation(
-                composition = lottieState.value,
-                iterations = LottieConstants.IterateForever
-            )
+
         }
     } else if (schedule.isEmpty()) {
         Box(
@@ -178,7 +166,11 @@ fun ScheduleBody(
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center)
         ) {
-            Text(text = "today no work")
+            if (!isGroupPicked) {
+                Text(text = "Выберите расписание в настройках")
+            } else {
+                Text(text = "Расписание на сегодня отсутсвует")
+            }
         }
     } else {
         LazyColumn(
@@ -216,7 +208,7 @@ fun ScheduleTopBar(
         Text(
             text = stringResource(id = dateData.dayOfWeek),
             fontWeight = FontWeight.Bold,
-            fontSize = 22.sp
+            fontSize = 22.sp,
         )
         Row(
             modifier = Modifier.clickable(onClick = onClick)
@@ -275,21 +267,25 @@ fun ScheduleDatePicker(
 
 }
 
+@SuppressLint("CoroutineCreationDuringComposition")
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ScheduleScreen(
-    viewModel: ScheduleScreenViewModel = getViewModel(),
+    viewModel: ScheduleScreenViewModel,
 ) {
 
     val scope = rememberCoroutineScope()
+    val scope2 = rememberCoroutineScope { Dispatchers.IO }
     val uiState = viewModel.uiState.collectAsState()
     val datesList = uiState.value.datesRange
     val pagerState = rememberPagerState(
-        initialPage = datesList.indexOf(getCurrentDate()),
+        initialPage = uiState.value.page,
     ) {
         datesList.size
+
     }
+
 
     ScheduleDatePicker(
         onConfirmClick = {
@@ -304,25 +300,27 @@ fun ScheduleScreen(
         openDialog = uiState.value.isDatePickerOpen
     )
 
+
+
     HorizontalPager(
         pagerState,
         modifier = Modifier
             .fillMaxSize(),
 
-        beyondBoundsPageCount = 2
+        beyondBoundsPageCount = 4
     ) { page ->
 
-        val bob = viewModel.getScheduleByDate(date = datesList[page])
+        val bob = viewModel.getScheduleByDateGroup(date = datesList[page])
             .collectAsState(initial = listOf(loading))
-
         Scaffold(
             topBar = { ScheduleTopBar(date = datesList[page], onClick = { viewModel.pickDate() }) }
         ) { innerPadding ->
             Column {
-                ScheduleBody(schedule = bob.value, modifier = Modifier.padding(innerPadding))
-                Button(onClick = { viewModel.loadToDb() }) {
-
-                }
+                ScheduleBody(
+                    schedule = bob.value,
+                    modifier = Modifier.padding(innerPadding),
+                    isGroupPicked = uiState.value.group != ""
+                )
             }
         }
     }

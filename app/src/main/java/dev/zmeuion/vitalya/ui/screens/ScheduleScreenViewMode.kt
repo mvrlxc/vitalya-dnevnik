@@ -4,6 +4,8 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.runtime.referentialEqualityPolicy
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.zmeuion.vitalya.data.ScheduleRepository
@@ -31,10 +33,24 @@ class ScheduleScreenViewModel(
 
     init {
         datesRange()
+        pageInit()
+        getGroup()
+    }
+
+
+    private fun getGroup() {
+        viewModelScope.launch {
+            repository.getGroup().collect { bob ->
+                _uiState.update { it.copy(group = bob) }
+            }
+        }
+
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun datesRange() {
+
+
         val startDate = LocalDate.of(2024, 4, 24)
         val endDate = LocalDate.of(2024, 5, 29)
         val datesList = mutableListOf<String>()
@@ -46,13 +62,12 @@ class ScheduleScreenViewModel(
         _uiState.update { it.copy(datesRange = datesList) }
     }
 
-    fun loadToDb() {
-        viewModelScope.launch { repository.loadScheduleToDatabase() }
-
-    }
-
     fun getScheduleByDate(date: String): Flow<List<ScheduleDBO>> {
         return repository.getFromDbByDate(date)
+    }
+
+    fun getScheduleByDateGroup(date: String): Flow<List<ScheduleDBO>> {
+        return repository.getFromDbByDateGroup(date = date, group = _uiState.value.group)
     }
 
 
@@ -62,6 +77,14 @@ class ScheduleScreenViewModel(
 
     fun dismissDatePicker() {
         _uiState.update { it.copy(isDatePickerOpen = false) }
+    }
+
+    private fun pageInit() {
+        _uiState.update { it.copy(page = _uiState.value.datesRange.indexOf(getCurrentDate())) }
+    }
+
+    private fun updatePageState(page: Int) {
+        _uiState.update { it.copy(page = page) }
     }
 
     @OptIn(ExperimentalFoundationApi::class)
@@ -82,5 +105,8 @@ class ScheduleScreenViewModel(
 data class ScheduleScreenState(
     val datesRange: List<String> = listOf(),
     val isDatePickerOpen: Boolean = false,
-    val text: String = ""
+    val text: String = "",
+    val group: String = "",
+    val isSchedulePicked: Boolean = true,
+    val page: Int = 0,
 )

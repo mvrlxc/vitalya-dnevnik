@@ -34,6 +34,17 @@ class OptionsRepository(
         return dataStoreManager.getScheduleFlow()
     }
 
+    fun getThemeFlow(): Flow<String> {
+        return dataStoreManager.getThemeFlow()
+    }
+
+    suspend fun getTheme(): String {
+        return dataStoreManager.getTheme()
+    }
+
+    suspend fun updateTheme(thme: String) {
+        dataStoreManager.updateTheme(thme)
+    }
 
 
 }

@@ -6,7 +6,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [ScheduleDBO::class],
-    version = 2
+    version = 1337
 )
 
 abstract class Database : RoomDatabase() {

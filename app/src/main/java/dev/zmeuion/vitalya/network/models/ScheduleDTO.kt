@@ -14,4 +14,5 @@ data class ScheduleDTO(
     val teacher: String,
     val date: String,
     val pairNumber: Int,
+    val homework: String,
 )

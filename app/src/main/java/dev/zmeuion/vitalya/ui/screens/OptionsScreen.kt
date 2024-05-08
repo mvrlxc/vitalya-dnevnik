@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -31,10 +33,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,14 +62,18 @@ val schedules = listOf("15.27Д-ПИ06/22б", "бобы", "ворлд оф ва�
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun OptionsScreen(
-    viewModel: OptionsViewModel = getViewModel<OptionsViewModel>(),
+    viewModel: OptionsViewModel = getViewModel(),
 ) {
     val context = LocalContext.current
     val schedule = viewModel.getSchedule().collectAsState(initial = "")
     val username = viewModel.getUsername().collectAsState(initial = "2")
+    val darkTheme = viewModel.fetchTheme().collectAsState(initial = "system")
+
+
     val isAuth = remember {
         mutableStateOf(false)
     }
+
     val uiState = viewModel.uiState.collectAsState()
     LaunchedEffect(Unit) {
         isAuth.value = (username.value?.isNotBlank() ?: false && username.value != "2")
@@ -84,7 +92,7 @@ fun OptionsScreen(
                 ) {
                     Text(
                         text = "Выйти из аккаунта",
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = MaterialTheme.colorScheme.background,
                         fontSize = 24.sp
                     )
                 }
@@ -173,7 +181,26 @@ fun OptionsScreen(
                         viewModel.updateSchedule(it)
                     })
                 }
+                Box(
+                    modifier = Modifier
+                        .padding(top = 3.dp)
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "Приложение")
+                }
+                OptionsCard(text = "Тема", icon = Icons.Default.Build) {
 
+                    Row {
+                        ThemeSwitcher(
+                            currentTheme = darkTheme.value,
+                            onCheckDark = { viewModel.chooseTheme("dark", type = it) },
+                            onCheckLight = { viewModel.chooseTheme("light", type = it) },
+                            onCheckSystem = { viewModel.chooseTheme("system", type = it) }
+                        )
+                    }
+                }
                 Button(onClick = { viewModel.start(context = context) }) {
 
                 }
@@ -315,4 +342,57 @@ fun SchedulePicker(
             }
         }
     }
+}
+
+@Composable
+fun ThemeSwitcher(
+    currentTheme: String,
+    onCheckDark: (Boolean) -> Unit,
+    onCheckLight: (Boolean) -> Unit,
+    onCheckSystem: (Boolean) -> Unit,
+) {
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        val darkSwitcher = remember {
+            mutableStateOf(false)
+        }
+        val lightSwitcher = remember {
+            mutableStateOf(false)
+        }
+        val systemSwitcher = remember {
+            mutableStateOf(false)
+        }
+        when (currentTheme) {
+            "dark" -> {
+                darkSwitcher.value = true
+                lightSwitcher.value = false
+                systemSwitcher.value = false
+            }
+
+            "light" -> {
+                darkSwitcher.value = false
+                lightSwitcher.value = true
+                systemSwitcher.value = false
+            }
+
+            "system" -> {
+                darkSwitcher.value = false
+                lightSwitcher.value = false
+                systemSwitcher.value = true
+            }
+        }
+        Text(text = "Тёмная")
+        Switch(checked = darkSwitcher.value, onCheckedChange = { onCheckDark(it) })
+
+        Text(text = "Светлая")
+        Switch(checked = lightSwitcher.value, onCheckedChange = { onCheckLight(it) })
+
+        Text(text = "Системная")
+        Switch(checked = systemSwitcher.value, onCheckedChange = { onCheckSystem(it) })
+    }
+
 }

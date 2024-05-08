@@ -5,8 +5,8 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "schedule")
 data class ScheduleDBO(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int? = 0,
+    @PrimaryKey
+    val id: Int,
     val group: String,
     val timeStart: String,
     val timeEnd: String,
@@ -15,7 +15,8 @@ data class ScheduleDBO(
     val place: String,
     val teacher: String,
     val date: String,
-    val pairNumber: String,
+    val pairNumber: Int,
+    val homework: String,
 )
 
 //id

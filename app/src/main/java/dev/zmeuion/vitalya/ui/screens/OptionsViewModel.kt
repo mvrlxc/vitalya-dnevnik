@@ -3,6 +3,7 @@ package dev.zmeuion.vitalya.ui.screens
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.BackoffPolicy
@@ -32,6 +33,7 @@ class OptionsViewModel(
 
     init {
         getUsername()
+        fetchTheme()
     }
 
     fun getUsername(): Flow<String?> {
@@ -75,8 +77,87 @@ class OptionsViewModel(
         return repository.getSchedule()
     }
 
-   @RequiresApi(Build.VERSION_CODES.O)
-   fun start(context: Context) {
+    fun chooseTheme(chosenTheme: String, type: Boolean) {
+        viewModelScope.launch {
+            when (chosenTheme) {
+                "dark" -> {
+                    if (type) {
+                        repository.updateTheme("dark")
+                        _uiState.update {
+                            it.copy(
+                                dark = true,
+                                light = false,
+                                system = false,
+                            )
+                        }
+                    } else {
+                        repository.updateTheme("system")
+                        _uiState.update {
+                            it.copy(
+                                dark = false,
+                                light = false,
+                                system = true,
+                            )
+                        }
+
+                    }
+                }
+
+                "light" -> {
+                    if (type) {
+                        repository.updateTheme("light")
+                        _uiState.update {
+                            it.copy(
+                                dark = false,
+                                light = true,
+                                system = false,
+                            )
+                        }
+                    } else {
+                        repository.updateTheme("system")
+                        _uiState.update {
+                            it.copy(
+                                dark = false,
+                                light = false,
+                                system = true,
+                            )
+                        }
+                    }
+                }
+
+                "system" -> {
+                    if (type) {
+                        repository.updateTheme("system")
+                        _uiState.update {
+                            it.copy(
+                                dark = false,
+                                light = false,
+                                system = true,
+                            )
+                        }
+                    } else {
+                        repository.updateTheme("dark")
+                        _uiState.update {
+                            it.copy(
+                                dark = true,
+                                light = false,
+                                system = false,
+                            )
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
+    fun fetchTheme(): Flow<String> {
+        return repository.getThemeFlow()
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun start(context: Context) {
         val work = PeriodicWorkRequestBuilder<UpdateScheduleWorker>(
             repeatInterval = Duration.ofMinutes(1)
         ).setBackoffCriteria(
@@ -93,4 +174,9 @@ class OptionsViewModel(
 data class OptionsUiState(
     val username: String = "",
     val usernameError: String = "",
+
+    val dark: Boolean = false,
+    val light: Boolean = false,
+    val system: Boolean = true,
+    val theme: String = "system"
 )

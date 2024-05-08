@@ -6,7 +6,7 @@ import dev.zmeuion.vitalya.network.models.ScheduleDTO
 fun ScheduleDTO.toScheduleDBO(scheduleDTO: ScheduleDTO): ScheduleDBO {
 
     return ScheduleDBO(
-        id = null,
+        id = scheduleDTO.id,
         group = scheduleDTO.group,
         timeStart = scheduleDTO.timeStart,
         timeEnd = scheduleDTO.timeEnd,
@@ -15,7 +15,8 @@ fun ScheduleDTO.toScheduleDBO(scheduleDTO: ScheduleDTO): ScheduleDBO {
         place = scheduleDTO.place,
         teacher = scheduleDTO.teacher,
         date = scheduleDTO.date,
-        pairNumber = scheduleDTO.pairNumber.toString(),
+        pairNumber = scheduleDTO.pairNumber,
+        homework = scheduleDTO.homework,
 
     )
 }

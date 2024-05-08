@@ -4,13 +4,16 @@ import dev.zmeuion.vitalya.data.mappers.toScheduleDBO
 import dev.zmeuion.vitalya.database.DataStoreManager
 import dev.zmeuion.vitalya.database.ScheduleDAO
 import dev.zmeuion.vitalya.database.ScheduleDBO
+import dev.zmeuion.vitalya.network.api.CommentsApi
 import dev.zmeuion.vitalya.network.api.ScheduleApi
+import dev.zmeuion.vitalya.network.models.CommentDTO
 import dev.zmeuion.vitalya.network.models.ScheduleDTO
 import kotlinx.coroutines.flow.Flow
 
 class ScheduleRepository(
     private val database: ScheduleDAO,
     private val datastore: DataStoreManager,
+    private val api: CommentsApi,
 ) {
 
     fun getFromDbByDate(date: String): Flow<List<ScheduleDBO>> {
@@ -25,47 +28,47 @@ class ScheduleRepository(
         return datastore.getScheduleFlow()
     }
 
+    suspend fun getScheduleById(id: Int): ScheduleDBO {
+        return database.selectByID(id)
+    }
+
+    fun getToken(): Flow<String> {
+        return datastore.getTokenFlow()
+    }
+
+    suspend fun getComments(id: Int): List<CommentDTO> {
+        return api.getComments(id)
+    }
+
+    suspend fun postComment(lessonID: Int, content: String, lessonDateTime: String): String {
+        val token = datastore.getToken()
+        return if (token.length > 3) {
+            api.postComment(lessonID, token, content, lessonDateTime)
+        } else {
+            "error"
+        }
+    }
+
     suspend fun updateSchedule(newSchedule: List<ScheduleDBO>) {
         val oldSchedule = database.getAll()
 
+        // Вставка новых данных, обновление существующих и удаление устаревших
         for (schedule in newSchedule) {
-            if (!oldSchedule.map { it.toMatch(it) }.contains(schedule.toMatch(schedule))) {
+            val existingSchedule = oldSchedule.find { it.id == schedule.id }
+            if (existingSchedule != null) {
+                if (existingSchedule != schedule) {
+                    database.update(schedule)
+                }
+            } else {
                 database.insert(schedule)
             }
         }
 
         for (schedule in oldSchedule) {
-            if (newSchedule.map { it.toMatch(it) }.none { it == schedule.toMatch(schedule) }) {
+            if (newSchedule.none { it.id == schedule.id }) {
                 database.delete(schedule)
             }
         }
-
-
     }
 }
 
-data class MatchSchedule(
-    val group: String,
-    val timeStart: String,
-    val timeEnd: String,
-    val name: String,
-    val type: String,
-    val place: String,
-    val teacher: String,
-    val date: String,
-    val pairNumber: String,
-)
-
-fun ScheduleDBO.toMatch(scheduleDBO: ScheduleDBO): MatchSchedule {
-    return MatchSchedule(
-        scheduleDBO.group,
-        scheduleDBO.timeStart,
-        scheduleDBO.timeEnd,
-        scheduleDBO.name,
-        scheduleDBO.type,
-        scheduleDBO.place,
-        scheduleDBO.teacher,
-        scheduleDBO.date,
-        scheduleDBO.pairNumber
-    )
-}

@@ -2,6 +2,7 @@ package dev.zmeuion.vitalya.di
 
 import android.content.res.Resources.NotFoundException
 import dev.zmeuion.vitalya.network.HttpRoutes
+import dev.zmeuion.vitalya.network.api.CommentsApi
 import dev.zmeuion.vitalya.network.api.LoginApi
 import dev.zmeuion.vitalya.network.api.ScheduleApi
 import io.ktor.client.HttpClient
@@ -38,7 +39,8 @@ val NetworkModule = module {
             expectSuccess = true
             HttpResponseValidator {
                 handleResponseExceptionWithRequest { exception, request ->
-                    val clientException = exception as? ClientRequestException ?: return@handleResponseExceptionWithRequest
+                    val clientException = exception as? ClientRequestException
+                        ?: return@handleResponseExceptionWithRequest
                     val exceptionResponse = clientException.response
                     if (exceptionResponse.status == HttpStatusCode.Forbidden) {
                         val exceptionResponseText = exceptionResponse.bodyAsText()
@@ -55,5 +57,9 @@ val NetworkModule = module {
 
     single {
         LoginApi(get())
+    }
+
+    single {
+        CommentsApi(get())
     }
 }

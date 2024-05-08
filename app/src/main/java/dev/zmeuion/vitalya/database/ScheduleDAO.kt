@@ -23,9 +23,12 @@ interface ScheduleDAO {
     @Query("SELECT * FROM schedule")
     suspend fun getAll(): List<ScheduleDBO>
 
+    @Query("SELECT * FROM schedule WHERE id = :id")
+    suspend fun selectByID(id: Int): ScheduleDBO
+
     @Query("SELECT * FROM schedule WHERE date = :date")
     fun getAllByDate(date: String): Flow<List<ScheduleDBO>>
 
-    @Query("SELECT * FROM schedule WHERE date = :date AND `group` = :group")
+    @Query("SELECT * FROM schedule WHERE date = :date AND `group` = :group ORDER BY pairNumber ASC")
     fun getAllByDateAndGroup(date: String, group: String): Flow<List<ScheduleDBO>>
 }

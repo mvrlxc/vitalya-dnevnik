@@ -11,7 +11,7 @@ import org.koin.dsl.module
 
 val DataModule = module {
 
-    single { ScheduleRepository(get(), get()) }
+    single { ScheduleRepository(get(), get(), get()) }
 
     single { LoginRepository(get(), get()) }
 

@@ -10,10 +10,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.zmeuion.vitalya.data.ScheduleRepository
 import dev.zmeuion.vitalya.database.ScheduleDBO
+import dev.zmeuion.vitalya.network.models.CommentDTO
 import dev.zmeuion.vitalya.ui.utils.formatDateFromMillis
 import dev.zmeuion.vitalya.ui.utils.getCurrentDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,8 +37,13 @@ class ScheduleScreenViewModel(
         datesRange()
         pageInit()
         getGroup()
+
     }
 
+    fun getToken(): Flow<String> {
+
+        return repository.getToken()
+    }
 
     private fun getGroup() {
         viewModelScope.launch {
@@ -87,6 +94,84 @@ class ScheduleScreenViewModel(
         _uiState.update { it.copy(page = page) }
     }
 
+    fun getByID(id: Int) {
+        viewModelScope.launch {
+            val info = repository.getScheduleById(id)
+            _uiState.update { it.copy(lessonInfo = info) }
+
+        }
+
+    }
+
+    fun setDefault() {
+        _uiState.update { it.copy(comments = listOf(noComments)) }
+    }
+
+    fun getComments(id: Int) {
+        viewModelScope.launch {
+            try {
+                val coms = repository.getComments(id)
+                if (coms.isEmpty()) {
+                    _uiState.update { it.copy(comments = listOf(noComments), isLoading = false) }
+                } else
+                    _uiState.update { it.copy(comments = coms, isLoading = false) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        comments = listOf(errorComments),
+                        isLoading = false
+                    )
+                }
+            }
+        }
+
+    }
+
+    fun updateComment(input: String) {
+        _uiState.update { it.copy(commentTF = input) }
+    }
+
+    fun postComment(lessonID: Int) {
+
+        if (_uiState.value.commentTF.isBlank()) {
+            _uiState.update { it.copy(isError = true, typeError = true) }
+            return
+        }
+        if (_uiState.value.commentTF.length > 1000) {
+            _uiState.update { it.copy(isError = true, typeError = false) }
+            return
+        }
+
+        _uiState.update { it.copy(isSending = true, isError = false) }
+        viewModelScope.launch {
+            try {
+                repository.postComment(
+                    content = _uiState.value.commentTF,
+                    lessonID = lessonID,
+                    lessonDateTime = getCurrentDate()
+                )
+                val coms = repository.getComments(lessonID)
+
+                _uiState.update {
+                    it.copy(
+                        isSending = false,
+                        comments = coms,
+                        isLoading = false,
+                        commentTF = ""
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isSending = false,
+                        comments = listOf(errorComments)
+                    )
+                }
+            }
+        }
+
+    }
+
     @OptIn(ExperimentalFoundationApi::class)
     fun confirmDatePicker(
         dateMillis: Long?,
@@ -109,4 +194,19 @@ data class ScheduleScreenState(
     val group: String = "",
     val isSchedulePicked: Boolean = true,
     val page: Int = 0,
+
+    val lessonInfo: ScheduleDBO = loading,
+
+    val comments: List<CommentDTO> = emptyList(),
+    val commentTF: String = "",
+    val isSending: Boolean = false,
+    val isLoading: Boolean = true,
+
+    val isError: Boolean = false,
+    val typeError: Boolean = false,
+
+    val isNotRegister: Boolean = true,
 )
+
+val noComments = CommentDTO(lessonID = 0, username = "", content = "", sendingDateTime = "")
+val errorComments = CommentDTO(lessonID = 0, username = "1", content = "1", sendingDateTime = "1")

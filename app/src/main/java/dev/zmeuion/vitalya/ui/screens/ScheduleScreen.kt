@@ -68,6 +68,7 @@ val loading = ScheduleDBO(
     "loading",
     "loading",
     "loading",
+    0,
     "loading",
 )
 
@@ -80,9 +81,11 @@ fun LessonCard(
     timeEnd: String,
     modifier: Modifier = Modifier,
     pairNumber: String,
+    onClick: () -> Unit,
 ) {
     val textColor = MaterialTheme.colorScheme.onSurface
-    Column {
+    Column(
+    ) {
 
 
         Box(
@@ -103,7 +106,8 @@ fun LessonCard(
         Card(
             modifier = Modifier
                 .padding(start = 8.dp, end = 8.dp)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .clickable(onClick = onClick),
             //  .height(IntrinsicSize.Max),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -151,6 +155,7 @@ fun ScheduleBody(
     schedule: List<ScheduleDBO>,
     isGroupPicked: Boolean,
     modifier: Modifier,
+    onClick: (Int?) -> Unit
 ) {
     if (schedule == listOf(loading)) {
         Box(
@@ -185,7 +190,8 @@ fun ScheduleBody(
                     place = item.place,
                     timeStart = item.timeStart,
                     timeEnd = item.timeEnd,
-                    pairNumber = item.pairNumber,
+                    pairNumber = item.pairNumber.toString(),
+                    onClick = { onClick(item.id) }
                 )
             }
         }
@@ -273,10 +279,10 @@ fun ScheduleDatePicker(
 @Composable
 fun ScheduleScreen(
     viewModel: ScheduleScreenViewModel,
+    navToInfo: (Int?) -> Unit,
 ) {
 
     val scope = rememberCoroutineScope()
-    val scope2 = rememberCoroutineScope { Dispatchers.IO }
     val uiState = viewModel.uiState.collectAsState()
     val datesList = uiState.value.datesRange
     val pagerState = rememberPagerState(
@@ -301,7 +307,6 @@ fun ScheduleScreen(
     )
 
 
-
     HorizontalPager(
         pagerState,
         modifier = Modifier
@@ -319,7 +324,8 @@ fun ScheduleScreen(
                 ScheduleBody(
                     schedule = bob.value,
                     modifier = Modifier.padding(innerPadding),
-                    isGroupPicked = uiState.value.group != ""
+                    isGroupPicked = uiState.value.group != "",
+                    onClick = navToInfo
                 )
             }
         }

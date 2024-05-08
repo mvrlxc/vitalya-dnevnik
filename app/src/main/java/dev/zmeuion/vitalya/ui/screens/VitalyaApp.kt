@@ -5,6 +5,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -20,6 +21,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,16 +35,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import dev.zmeuion.vitalya.database.DataStoreManager
 import dev.zmeuion.vitalya.ui.screens.login.AuthScreen
+import dev.zmeuion.vitalya.ui.theme.BobiTheme
 import org.koin.androidx.compose.getViewModel
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -78,6 +83,8 @@ fun VitalyaMain(
     }
     val scheduleVM = getViewModel<ScheduleScreenViewModel>()
 
+
+
     Scaffold(
         bottomBar = {
             VitalyaBottomAppBar(
@@ -100,7 +107,10 @@ fun VitalyaMain(
                 )
             }
             ) {
-                ScheduleScreen(scheduleVM)
+                ScheduleScreen(
+                    scheduleVM,
+                    navToInfo = { navController.navigate("${Routes.LESSONINFO.text}/${it}") }
+                )
             }
             composable(route = Routes.OPTIONS.text, enterTransition = {
                 slideInHorizontally(
@@ -120,14 +130,27 @@ fun VitalyaMain(
 
             }) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    val lottieState = rememberLottieComposition(spec = LottieCompositionSpec.Asset("loading.json"))
-                    LottieAnimation(composition = lottieState.value,  iterations = LottieConstants.IterateForever)
+                    val lottieState =
+                        rememberLottieComposition(spec = LottieCompositionSpec.Asset("loading.json"))
+                    LottieAnimation(
+                        composition = lottieState.value,
+                        iterations = LottieConstants.IterateForever
+                    )
                 }
+            }
+            composable(
+                route = "${Routes.LESSONINFO.text}/{lessonId}", arguments = listOf(
+                    navArgument("lessonId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                LessonInfoScreen(
+                    backStackEntry.arguments?.getInt("lessonId") ?: 0,
+                    viewModel = scheduleVM,
+                    onClick = { navController.navigateUp() })
             }
         }
     }
-
 }
+
 
 @Composable
 fun VitalyaBottomAppBar(
@@ -186,5 +209,6 @@ enum class Routes(val text: String) {
     SCHEDULE(text = "Расписание"),
     OPTIONS(text = "Настройки"),
     HOMEWORK(text = "Домашние задания"),
+    LESSONINFO(text = "Информация")
 }
 

@@ -13,6 +13,7 @@ import androidx.work.WorkManager
 import dev.zmeuion.vitalya.data.OptionsRepository
 import dev.zmeuion.vitalya.data.ScheduleRepository
 import dev.zmeuion.vitalya.data.UpdateScheduleWorker
+import dev.zmeuion.vitalya.data.ValidatePassword
 import dev.zmeuion.vitalya.data.ValidateUsername
 import dev.zmeuion.vitalya.database.DataStoreManager
 import kotlinx.coroutines.flow.Flow
@@ -23,10 +24,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Duration
+import java.util.concurrent.TimeUnit
 
 class OptionsViewModel(
     private val repository: OptionsRepository,
     private val validateUsername: ValidateUsername = ValidateUsername(),
+    private val validatePassword: ValidatePassword = ValidatePassword(),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(OptionsUiState())
     val uiState = _uiState.asStateFlow()
@@ -34,6 +37,7 @@ class OptionsViewModel(
     init {
         getUsername()
         fetchTheme()
+        getNotification()
     }
 
     fun getUsername(): Flow<String?> {
@@ -47,9 +51,24 @@ class OptionsViewModel(
         }
     }
 
+    private fun getNotification() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(notifications = repository.getNoti()) }
+        }
+    }
+
     fun updateUsernameTextField(username: String) {
         _uiState.update { it.copy(username = username) }
     }
+
+    fun updateNewPasswordTextField(username: String) {
+        _uiState.update { it.copy(newPassword = username) }
+    }
+
+    fun updateOldPasswordTextField(username: String) {
+        _uiState.update { it.copy(oldPassword = username) }
+    }
+
 
     fun updateUsername() {
         val hasError = validateUsername.execute(_uiState.value.username)
@@ -57,14 +76,64 @@ class OptionsViewModel(
             _uiState.update { it.copy(usernameError = hasError.error ?: "") }
             return
         } else {
-            viewModelScope.launch { repository.updateUsername(_uiState.value.username) }
+            try {
+                viewModelScope.launch { repository.updateUsername(_uiState.value.username) }
+                _uiState.update {
+                    it.copy(
+                        usernameError = "",
+                        username = ""
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        usernameError = "Ошибка с подключением",
+                    )
+                }
+            }
+        }
+    }
+
+    fun updatePassword() {
+        _uiState.update { it.copy(password2Error = "", passwordError = "") }
+        val hasError = validatePassword.execute(_uiState.value.newPassword)
+        var response = ""
+        if (!hasError.successful) {
+            _uiState.update { it.copy(passwordError = hasError.error ?: "") }
+            return
+        }
+        try {
+            viewModelScope.launch {
+                response = repository.updatePassword(
+                    _uiState.value.newPassword,
+                    _uiState.value.oldPassword
+                )
+
+                if (response == "invalid") {
+                    _uiState.update {
+                        it.copy(
+                            password2Error = "Неверный пароль",
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            usernameError = "",
+                            newPassword = "",
+                            oldPassword = "",
+                        )
+                    }
+                }
+            }
+        } catch (e: Exception) {
             _uiState.update {
                 it.copy(
-                    usernameError = "",
-                    username = ""
+                    passwordError = "Ошибка с подключением",
                 )
             }
         }
+
+
     }
 
     fun updateSchedule(schedule: String) {
@@ -75,6 +144,13 @@ class OptionsViewModel(
 
     fun getSchedule(): Flow<String> {
         return repository.getSchedule()
+    }
+
+    fun updateNotifications(input: Boolean) {
+        viewModelScope.launch {
+            repository.editNotifications(input)
+        }
+        _uiState.update { it.copy(notifications = input) }
     }
 
     fun chooseTheme(chosenTheme: String, type: Boolean) {
@@ -156,27 +232,21 @@ class OptionsViewModel(
     }
 
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun start(context: Context) {
-        val work = PeriodicWorkRequestBuilder<UpdateScheduleWorker>(
-            repeatInterval = Duration.ofMinutes(1)
-        ).setBackoffCriteria(
-            backoffPolicy = BackoffPolicy.LINEAR,
-            duration = Duration.ofSeconds(30)
-        )
-            .build()
-        WorkManager.getInstance(context).enqueue(work)
-    }
-
-
 }
 
 data class OptionsUiState(
     val username: String = "",
     val usernameError: String = "",
 
+    val newPassword: String = "",
+    val oldPassword: String = "",
+    val passwordError: String = "",
+    val password2Error: String = "",
+
     val dark: Boolean = false,
     val light: Boolean = false,
     val system: Boolean = true,
-    val theme: String = "system"
+    val theme: String = "system",
+
+    val notifications: Boolean = false,
 )

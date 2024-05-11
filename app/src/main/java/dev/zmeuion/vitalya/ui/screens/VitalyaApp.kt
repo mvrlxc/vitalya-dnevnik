@@ -5,8 +5,8 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,11 +28,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavType
@@ -41,14 +44,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
-import com.airbnb.lottie.compose.rememberLottieComposition
+import androidx.work.BackoffPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import dev.zmeuion.vitalya.R
+import dev.zmeuion.vitalya.data.UpdateScheduleWorker
 import dev.zmeuion.vitalya.database.DataStoreManager
 import dev.zmeuion.vitalya.ui.screens.login.AuthScreen
-import dev.zmeuion.vitalya.ui.theme.BobiTheme
 import org.koin.androidx.compose.getViewModel
+import java.time.Duration
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -82,7 +86,19 @@ fun VitalyaMain(
         mutableIntStateOf(3000)
     }
     val scheduleVM = getViewModel<ScheduleScreenViewModel>()
+    val context = LocalContext.current
 
+    LaunchedEffect (Unit){
+        WorkManager.getInstance(context).cancelAllWork()
+        val work = PeriodicWorkRequestBuilder<UpdateScheduleWorker>(
+            repeatInterval = Duration.ofSeconds(10)
+        ).setBackoffCriteria(
+            backoffPolicy = BackoffPolicy.LINEAR,
+            duration = Duration.ofSeconds(30)
+        )
+            .build()
+        WorkManager.getInstance(context).enqueue(work)
+    }
 
 
     Scaffold(
@@ -129,14 +145,7 @@ fun VitalyaMain(
 
 
             }) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    val lottieState =
-                        rememberLottieComposition(spec = LottieCompositionSpec.Asset("loading.json"))
-                    LottieAnimation(
-                        composition = lottieState.value,
-                        iterations = LottieConstants.IterateForever
-                    )
-                }
+                HomeWorkScreen(viewModel = scheduleVM)
             }
             composable(
                 route = "${Routes.LESSONINFO.text}/{lessonId}", arguments = listOf(
@@ -159,21 +168,21 @@ fun VitalyaBottomAppBar(
     animValue: MutableIntState,
 ) {
     var selectedItem by remember { mutableIntStateOf(1) }
-    val items = listOf<NavBar>(
+    val items = listOf(
         NavBar(
-            title = "Настройки",
+            title = { Text(text = "Настройки") },
             route = Routes.OPTIONS,
             icon = Icons.Default.Settings,
         ),
         NavBar(
-            title = "Расписание",
+            title = { Text(text = "Расписание") },
             route = Routes.SCHEDULE,
             icon = Icons.Default.DateRange,
         ),
         NavBar(
-            title = "Домашние задания",
+            title = { Text(text = "Задания", maxLines = 1, overflow = TextOverflow.Ellipsis) },
             route = Routes.HOMEWORK,
-            icon = Icons.Default.ShoppingCart,
+            icon =  ImageVector.vectorResource(id = R.drawable.homework_svgrepo_com),
         )
     )
 
@@ -192,15 +201,15 @@ fun VitalyaBottomAppBar(
                         navController.popBackStack(inclusive = true, route = item.route.text)
                     }
                 },
-                icon = { Icon(item.icon, contentDescription = null) },
-                label = { Text(text = item.title) }
+                icon = { Icon(item.icon, contentDescription = null, modifier = Modifier.size(22.dp)) },
+                label = item.title
             )
         }
     }
 }
 
 data class NavBar(
-    val title: String,
+    val title: @Composable () -> Unit,
     val route: Routes,
     val icon: ImageVector
 )

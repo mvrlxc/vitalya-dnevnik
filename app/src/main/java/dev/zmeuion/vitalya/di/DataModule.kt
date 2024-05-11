@@ -15,7 +15,7 @@ val DataModule = module {
 
     single { LoginRepository(get(), get()) }
 
-    single { OptionsRepository(get()) }
+    single { OptionsRepository(get(), get()) }
 
     // single { UpdateScheduleWorker(get(), get(), androidContext(), get()) }
 

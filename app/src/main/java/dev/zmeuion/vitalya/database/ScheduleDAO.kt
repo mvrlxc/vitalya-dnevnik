@@ -23,6 +23,9 @@ interface ScheduleDAO {
     @Query("SELECT * FROM schedule")
     suspend fun getAll(): List<ScheduleDBO>
 
+    @Query("SELECT * FROM schedule")
+    fun getAllFLow(): Flow<List<ScheduleDBO>>
+
     @Query("SELECT * FROM schedule WHERE id = :id")
     suspend fun selectByID(id: Int): ScheduleDBO
 

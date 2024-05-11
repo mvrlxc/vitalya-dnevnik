@@ -3,6 +3,7 @@ package dev.zmeuion.vitalya.ui.utils
 import android.os.Build
 import androidx.annotation.RequiresApi
 import dev.zmeuion.vitalya.R
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -58,6 +59,19 @@ fun formatDateFromMillis(millis: Long): String {
     val date = Date(millis)
     val formatter = SimpleDateFormat("dd.MM.yyyy")
     return formatter.format(date)
+}
+
+fun isDateValid(date: String): Boolean {
+    val dateFormat = SimpleDateFormat("dd.MM.yyyy")
+    dateFormat.isLenient = false
+    try {
+        // Пытаемся распарсить строку как дату
+        dateFormat.parse(date)
+        return true
+    } catch (e: ParseException) {
+        // Если происходит ParseException, значит строка не соответствует формату даты
+        return false
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)

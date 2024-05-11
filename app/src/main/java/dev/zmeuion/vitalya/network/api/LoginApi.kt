@@ -1,5 +1,7 @@
 package dev.zmeuion.vitalya.network.api
 
+import dev.zmeuion.vitalya.network.models.ChangePassword
+import dev.zmeuion.vitalya.network.models.ChangeUsername
 import dev.zmeuion.vitalya.network.models.GetToken
 import dev.zmeuion.vitalya.network.models.LoginDTO
 import dev.zmeuion.vitalya.network.models.RegisterDTO
@@ -29,6 +31,22 @@ class LoginApi(
     suspend fun getUsername(token: String): String {
         val body = GetToken(token = token)
         return client.post("/getUsername") {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }.body<TextDTO>().text
+    }
+
+    suspend fun changeUsername(token: String, newUsername: String): String {
+        val body = ChangeUsername(token, newUsername)
+        return client.post("/changeUsername") {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }.body<TextDTO>().text
+    }
+
+    suspend fun changePassword(token: String, oldPassword: String, newPassword: String): String {
+        val body = ChangePassword(token, newPassword, oldPassword)
+        return client.post("/changePassword") {
             contentType(ContentType.Application.Json)
             setBody(body)
         }.body<TextDTO>().text

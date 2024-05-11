@@ -22,6 +22,7 @@ class DataStoreManager(ctx: Context) {
         val username = stringPreferencesKey("username")
         val schedule = stringPreferencesKey("schedule")
         val theme = stringPreferencesKey("theme")
+        val notifications = booleanPreferencesKey("notifications")
     }
 
     suspend fun updateToken(tokenInput: String) {
@@ -62,6 +63,15 @@ class DataStoreManager(ctx: Context) {
 
     suspend fun getTheme(): String {
         return context.datastore.data.first()[theme] ?: "system"
+    }
+
+    suspend fun updateNotifications(themeInput: Boolean) {
+        context.datastore.edit { datastore -> datastore[notifications] = themeInput }
+    }
+
+
+    suspend fun getNotifications(): Boolean {
+        return context.datastore.data.first()[notifications] ?: false
     }
 
 }

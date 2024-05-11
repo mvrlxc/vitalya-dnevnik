@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.AccountCircle
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -57,7 +60,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.getViewModel
 import org.koin.androidx.compose.viewModel
 
-val schedules = listOf("15.27Д-ПИ06/22б", "бобы", "ворлд оф варкрафт")
+val schedules = listOf("15.27Д-ПИ06/22б", "15.228Д/ПИ1337", "69.52М/ИБ322")
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -104,6 +107,7 @@ fun OptionsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
         ) {
 
             if (isAuth.value) {
@@ -163,7 +167,52 @@ fun OptionsScreen(
                 })
 
                 OptionsCard(text = "Изменить пароль", icon = Icons.Default.Lock) {
-
+                    Column {
+                        OutlinedTextField(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 4.dp, end = 4.dp, bottom = 4.dp),
+                            value = uiState.value.oldPassword,
+                            onValueChange = { viewModel.updateOldPasswordTextField(it) },
+                            isError = uiState.value.password2Error.isNotBlank(),
+                            label = { Text(text = "Введите старый пароль") },
+                        )
+                        if (uiState.value.password2Error.isNotBlank()) {
+                            Text(
+                                text = uiState.value.password2Error,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        OutlinedTextField(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 4.dp, end = 4.dp, bottom = 4.dp),
+                            value = uiState.value.newPassword,
+                            onValueChange = { viewModel.updateNewPasswordTextField(it) },
+                            isError = uiState.value.passwordError.isNotBlank(),
+                            label = { Text(text = "Введите новый пароль") },
+                            trailingIcon = {
+                                Box(
+                                    modifier = Modifier
+                                        .clickable(onClick = { viewModel.updatePassword() })
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                                ) {
+                                    Icon(
+                                        Icons.Default.Done,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                    )
+                                }
+                            }
+                        )
+                        if (uiState.value.passwordError.isNotBlank()) {
+                            Text(
+                                text = uiState.value.passwordError,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
                 }
 
                 Box(
@@ -201,8 +250,18 @@ fun OptionsScreen(
                         )
                     }
                 }
-                Button(onClick = { viewModel.start(context = context) }) {
 
+                OptionsCard(text = "Уведомления", icon = Icons.Default.Notifications) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Уведомления об изменениях в расписании")
+                        Switch(
+                            checked = uiState.value.notifications,
+                            onCheckedChange = { viewModel.updateNotifications(it) })
+                    }
                 }
 
 
@@ -328,8 +387,8 @@ fun SchedulePicker(
             Text(text = schedule, color = MaterialTheme.colorScheme.primary)
         }
     }
-    LazyColumn {
-        itemsIndexed(schedules) { _, schedule ->
+    Column {
+        schedules.forEach { schedule ->
             Box(
                 modifier = Modifier
                     .padding(top = 3.dp)

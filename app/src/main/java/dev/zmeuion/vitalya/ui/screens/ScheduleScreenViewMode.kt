@@ -172,6 +172,10 @@ class ScheduleScreenViewModel(
 
     }
 
+    fun getAll(): Flow<List<ScheduleDBO>> {
+        return repository.getAll()
+    }
+
     @OptIn(ExperimentalFoundationApi::class)
     fun confirmDatePicker(
         dateMillis: Long?,
@@ -208,5 +212,6 @@ data class ScheduleScreenState(
     val isNotRegister: Boolean = true,
 )
 
-val noComments = CommentDTO(lessonID = 0, username = "", content = "", sendingDateTime = "")
-val errorComments = CommentDTO(lessonID = 0, username = "1", content = "1", sendingDateTime = "1")
+val noComments = CommentDTO(lessonID = 0, username = "", content = "", sendingDateTime = "", id = 0)
+val errorComments =
+    CommentDTO(lessonID = 0, username = "1", content = "1", sendingDateTime = "1", id = 0)

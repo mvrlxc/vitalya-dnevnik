@@ -6,6 +6,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
@@ -44,19 +46,33 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.work.BackoffPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
+import dev.zmeuion.vitalya.data.UpdateScheduleWorker
 import dev.zmeuion.vitalya.ui.utils.formatDate
 import dev.zmeuion.vitalya.ui.utils.getCurrentDate
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Duration
 
 val loading = ScheduleDBO(
     0,
@@ -157,24 +173,30 @@ fun ScheduleBody(
     modifier: Modifier,
     onClick: (Int?) -> Unit
 ) {
+    val state = rememberScrollState()
     if (schedule == listOf(loading)) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center)
         ) {
 
         }
     } else if (schedule.isEmpty()) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .wrapContentSize(Alignment.Center)
-        ) {
-            if (!isGroupPicked) {
-                Text(text = "Выберите расписание в настройках")
-            } else {
-                Text(text = "Расписание на сегодня отсутсвует")
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = modifier
+                    .fillMaxSize()
+                    .wrapContentSize(Alignment.Center)
+                    .align(Alignment.Center)
+            ) {
+                item {
+                    if (!isGroupPicked) {
+                        Text(text = "Выберите расписание в настройках")
+                    } else {
+                        Text(text = "Расписание на сегодня отсутсвует")
+                    }
+                }
             }
         }
     } else {
@@ -275,13 +297,13 @@ fun ScheduleDatePicker(
 
 @SuppressLint("CoroutineCreationDuringComposition")
 @RequiresApi(Build.VERSION_CODES.O)
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleScreen(
     viewModel: ScheduleScreenViewModel,
     navToInfo: (Int?) -> Unit,
 ) {
-
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val uiState = viewModel.uiState.collectAsState()
     val datesList = uiState.value.datesRange
@@ -292,6 +314,22 @@ fun ScheduleScreen(
 
     }
 
+    val refreshScope = rememberCoroutineScope()
+    val state = rememberPullToRefreshState()
+    if (state.isRefreshing) {
+        LaunchedEffect(true) {
+            val work = OneTimeWorkRequestBuilder<UpdateScheduleWorker>(
+            ).setBackoffCriteria(
+                backoffPolicy = BackoffPolicy.LINEAR,
+                duration = Duration.ofSeconds(30)
+            )
+                .build()
+            WorkManager.getInstance(context).enqueue(work)
+            delay(1500)
+            WorkManager.getInstance(context).cancelWorkById(work.id)
+            state.endRefresh()
+        }
+    }
 
     ScheduleDatePicker(
         onConfirmClick = {
@@ -305,29 +343,43 @@ fun ScheduleScreen(
         onDismissClick = { viewModel.dismissDatePicker() },
         openDialog = uiState.value.isDatePickerOpen
     )
-
-
-    HorizontalPager(
-        pagerState,
+    Box(
         modifier = Modifier
-            .fillMaxSize(),
+            .fillMaxSize()
+            .nestedScroll(state.nestedScrollConnection)
+    ) {
+        HorizontalPager(
+            pagerState,
+            modifier = Modifier
+                .fillMaxSize(),
 
-        beyondBoundsPageCount = 4
-    ) { page ->
+            beyondBoundsPageCount = 4
+        ) { page ->
 
-        val bob = viewModel.getScheduleByDateGroup(date = datesList[page])
-            .collectAsState(initial = listOf(loading))
-        Scaffold(
-            topBar = { ScheduleTopBar(date = datesList[page], onClick = { viewModel.pickDate() }) }
-        ) { innerPadding ->
-            Column {
-                ScheduleBody(
-                    schedule = bob.value,
-                    modifier = Modifier.padding(innerPadding),
-                    isGroupPicked = uiState.value.group != "",
-                    onClick = navToInfo
-                )
+            val bob = viewModel.getScheduleByDateGroup(date = datesList[page])
+                .collectAsState(initial = listOf(loading))
+            Scaffold(
+                topBar = {
+                    ScheduleTopBar(
+                        date = datesList[page],
+                        onClick = { viewModel.pickDate() })
+                }
+            ) { innerPadding ->
+                Column {
+                    ScheduleBody(
+                        schedule = bob.value,
+                        modifier = Modifier
+                            .padding(innerPadding),
+                        isGroupPicked = uiState.value.group != "",
+                        onClick = navToInfo
+                    )
+                }
             }
+
         }
+        PullToRefreshContainer(
+            modifier = Modifier.align(Alignment.TopCenter),
+            state = state,
+        )
     }
 }
